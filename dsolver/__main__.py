@@ -13,26 +13,31 @@ pros= Processor()
 rep= Report()
 
 
-def process_output(out):
-    log.info("Processing output")
-    pkg= pros.find_missing_package(out) 
-    if(pkg is None):
-        log.info("No missing package")
-        return False 
-    else:
-        log.info("Found missing package {}".format(pkg))
-        exe.install_package(pkg)
-        return True
-
-
 def run():
-    out= exe.run(file_path)
 
-    if(process_output(out)):
-        return True 
-    else:
-        run()
+    #Missing Package
+    log.info("Resolving Missing Packages")
+    while(True): 
+        out= exe.run(file_path)
+        pkg= pros.find_missing_package(out) 
+        if(pkg is None):
+            log.info("No missing package left")
+            break 
+        else:
+            if(pkg in rep.found):
+                rep.error.append(pkg)
+                log.error("# {} package couldn't be installed.".format(pkg))
+                break 
+            log.info("Missing package: {}".format(pkg))
+            rep.found.append(pkg)
+            exe.install_package(pkg) 
+            rep.installed.append(pkg)
+
+    if(len(rep.error)==0):
+        log.info("Running Error free script")
+        exe.exe_script(file_path)
     
+    rep.show()
 
 
 ##########################################################################################
@@ -45,10 +50,7 @@ if __name__=="__main__":
     args= parser.parse_args() 
     if(args.file is not None):
         file_path= args.file
-        if(exe.is_valid_path(file_path)):
-            run()
-            log.info("Running Error free script")
-            exe.exe_script(file_path)
-            rep.show()
-        else:
+        if(not exe.is_valid_path(file_path)):
             log.error("File path not valid")
+        else:
+            run()        
